@@ -61,11 +61,7 @@ mongoose
             upgradeGroup(base: BaseZGroup | BaseOGroup): ZGroup | OGroup;
 
             upgradeGroup(base: BaseOGroup | BaseZGroup): OGroup | ZGroup {
-                let group: OGroup | ZGroup;
-
-                if (base instanceof BaseOGroup) group = new OGroup(base.name, base.instId);
-                else if (base instanceof BaseZGroup) group = new ZGroup(base.name, base.instId);
-                else throw new Error('Неизвестный тип группы');
+                let group: OGroup | ZGroup = base instanceof BaseOGroup ? new OGroup(base.name, base.instId) : new ZGroup(base.name, base.instId);
 
                 group.cachedFullRawSchedule = base.cachedFullRawSchedule;
 
@@ -73,15 +69,16 @@ mongoose
             }
 
             async exec() {
-                let users = await Users.find({ notifications: true }).exec();
+                let users = await Users.find({ notifications: true }).lean().exec();
 
                 let dateToday = new Date();
                 let dateTomorrow = new Date(Date.now() + 1000 * 60 * 60 * 24);
 
                 // DEBUG
-                let testDate = new Date('Mon Apr 14 2025 11:20:55 GMT+0300 (Москва, стандартное время)');
+                // let testDate = new Date('Mon Apr 14 2025 11:20:55 GMT+0300 (Москва, стандартное время)');
+                // let lastFinishedLessonIndex = this.getLastFinishedLessonIndex(testDate);
 
-                let lastFinishedLessonIndex = this.getLastFinishedLessonIndex(testDate);
+                let lastFinishedLessonIndex = this.getLastFinishedLessonIndex();
 
                 console.log('[notify] Начинаю отправлять уведомления ');
 
@@ -95,7 +92,7 @@ mongoose
 
                         if (!todaySchedule || !tomorrowSchedule || tomorrowSchedule.length == 0) return;
 
-                        let lastTodayLessonIndex = !todaySchedule.length ? 1 : todaySchedule[todaySchedule.length - 1].pair;
+                        let lastTodayLessonIndex = !todaySchedule.length ? 1 : todaySchedule[todaySchedule.length - 1].number;
 
                         console.log(lastTodayLessonIndex, lastFinishedLessonIndex);
 
@@ -118,7 +115,7 @@ mongoose
                                     'Error: ETELEGRAM: 403 Forbidden: user is deactivated',
                                 ].includes(`${err}`)
                             ) {
-                                console.log(`[notify] Chat not found or was deleted, or bot was blocked by ${user.id}`);
+                                console.log(`[notify] Chat not found or was deleted, or bot was blocked by ${user.userId}`);
                                 console.log(`[notify] ${err}`);
                                 // user.delete();
                             } else {
